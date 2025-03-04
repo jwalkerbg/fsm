@@ -7,13 +7,19 @@ logger = logging.getLogger(__name__)
 
 class TrackedFSM:
     def __init__(self):
-        self.states = ["idle", "processing", "error"]
+        self.states = [
+            {"name": "idle", "on_enter": ["on_enter_idle"], "on_exit": ["on_exit_idle"]},
+            {"name": "processing", "on_enter": ["on_enter_processing"], "on_exit": ["on_exit_processing"]},
+            {"name": "error", "on_enter": ["on_enter_error"], "on_exit": ["on_exit_error"]},
+        ]
+
         self.transitions = [
             {"trigger": "start", "source": "idle", "dest": "processing", "before": "on_start"},
             {"trigger": "fail", "source": "processing", "dest": "error", "before": "on_fail"},
             {"trigger": "reset", "source": "error", "dest": "idle", "before": "on_reset"},
             {"trigger": "proceed", "source": "processing", "dest": "processing", "conditions": "can_proceed"},
         ]
+
         self.machine = Machine(
             model=self,
             states=self.states,
@@ -32,6 +38,7 @@ class TrackedFSM:
             f"Permitted: {'Yes' if permitted else 'No'}"
         )
 
+    # Transition Actions
     def on_start(self):
         logger.info("Processing started.")
 
@@ -43,6 +50,26 @@ class TrackedFSM:
 
     def can_proceed(self):
         return True  # Change to False to test denied transitions.
+
+    # State Entry Actions
+    def on_enter_idle(self):
+        logger.info("🏁 Entered state: IDLE")
+
+    def on_enter_processing(self):
+        logger.info("🔄 Entered state: PROCESSING")
+
+    def on_enter_error(self):
+        logger.info("❌ Entered state: ERROR")
+
+    # State Exit Actions
+    def on_exit_idle(self):
+        logger.info("🏃 Exiting state: IDLE")
+
+    def on_exit_processing(self):
+        logger.info("⚡ Exiting state: PROCESSING")
+
+    def on_exit_error(self):
+        logger.info("🔁 Exiting state: ERROR")
 
     def safe_trigger(self, event):
         """Safe event trigger that logs warnings instead of crashing."""
