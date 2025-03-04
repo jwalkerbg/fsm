@@ -1,31 +1,55 @@
 from transitions import Machine
 import logging
 
-class MyFSM:
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
+
+class TrackedFSM:
     def __init__(self):
-        states = ["idle", "processing", "error"]
-        transitions = [
+        self.states = ["idle", "processing", "error"]
+        self.transitions = [
             {"trigger": "start", "source": "idle", "dest": "processing", "before": "on_start"},
             {"trigger": "fail", "source": "processing", "dest": "error", "before": "on_fail"},
             {"trigger": "reset", "source": "error", "dest": "idle", "before": "on_reset"},
-            {"trigger": "continue", "source": "processing", "dest": "processing", "conditions": "can_continue"},
+            {"trigger": "proceed", "source": "processing", "dest": "processing", "conditions": "can_proceed"},
         ]
-        self.machine = Machine(model=self, states=states, transitions=transitions, initial="idle")
+        self.machine = Machine(
+            model=self,
+            states=self.states,
+            transitions=self.transitions,
+            initial="idle"
+        )
+
+        # Set up global transition hook
+        self.machine.on_transition = self.log_transition
+
+    def log_transition(self, event_data):
+        """Logs each transition systematically."""
+        permitted = event_data.transition.conditions_met
+        logger.info(
+            f"Event: {event_data.event.name}, "
+            f"Current State: {event_data.state}, "
+            f"New State: {event_data.transition.dest}, "
+            f"Permitted: {'Yes' if permitted else 'No'}"
+        )
 
     def on_start(self):
-        print("on_start: Processing started.")
+        logger.info("Processing started.")
 
     def on_fail(self):
-        print("on_fail: Error occurred.")
+        logger.info("Error occurred.")
 
     def on_reset(self):
-        print("on_reset: Resetting.")
+        logger.info("Resetting.")
 
-    def can_continue(self):
-        # Guard condition example: only continue if some condition is met
-        return True  # Change to False to prevent the transition
+    def can_proceed(self):
+        return True  # Change to False to see how a denied transition is logged.
 
-fsm = MyFSM()
+# Create and test the FSM
+fsm = TrackedFSM()
+
 fsm.start()     # Processing started.
 fsm.fail()      # Error occurred.
 fsm.reset()     # Resetting.
+fsm.proceed()   # Logs permitted status
