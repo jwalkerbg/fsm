@@ -20,15 +20,13 @@ class TrackedFSM:
             transitions=self.transitions,
             initial="idle"
         )
-
-        # Set up global transition hook
-        self.machine.on_transition = self.log_transition
+        self.machine.on_transition = self.log_transition  # Hook for logging transitions
 
     def log_transition(self, event_data):
         """Logs each transition systematically."""
         permitted = event_data.transition.conditions_met
         logger.info(
-            f"Event: {event_data.event.name}, "
+            f"✅ Event: {event_data.event.name}, "
             f"Current State: {event_data.state}, "
             f"New State: {event_data.transition.dest}, "
             f"Permitted: {'Yes' if permitted else 'No'}"
@@ -44,12 +42,23 @@ class TrackedFSM:
         logger.info("Resetting.")
 
     def can_proceed(self):
-        return True  # Change to False to see how a denied transition is logged.
+        return True  # Change to False to test denied transitions.
 
-# Create and test the FSM
+    def safe_trigger(self, event):
+        """Safe event trigger that logs warnings instead of crashing."""
+        if event not in self.machine.get_triggers(self.state):
+            logger.warning(f"⚠️ Event '{event}' lost in state '{self.state}'")
+            return False  # Event not processed
+        getattr(self, event)()  # Dynamically call the event method on self
+        return True
+
+# Create FSM instance
 fsm = TrackedFSM()
 
-fsm.start()     # Processing started.
-fsm.fail()      # Error occurred.
-fsm.reset()     # Resetting.
-fsm.proceed()   # Logs permitted status
+# TEST SCENARIO
+fsm.safe_trigger("start")    # ✅ Moves from 'idle' → 'processing'
+fsm.safe_trigger("proceed")  # ✅ Stays in 'processing'
+fsm.safe_trigger("fail")     # ✅ Moves from 'processing' → 'error'
+fsm.safe_trigger("reset")    # ✅ Moves from 'error' → 'idle'
+fsm.safe_trigger("proceed")  # ⚠️ Logs "Event 'proceed' lost in state 'idle'" but execution continues
+fsm.safe_trigger("fail")     # ⚠️ Logs "Event 'fail' lost in state 'idle'"
