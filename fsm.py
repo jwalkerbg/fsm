@@ -17,7 +17,7 @@ class TrackedFSM:
             {"trigger": "start", "source": "idle", "dest": "processing", "before": "on_start"},
             {"trigger": "fail", "source": "processing", "dest": "error", "before": "on_fail"},
             {"trigger": "reset", "source": "error", "dest": "idle", "before": "on_reset"},
-            {"trigger": "proceed", "source": "processing", "dest": "processing", "conditions": "can_proceed"},
+            {"trigger": "proceed", "source": "processing", "dest": "processing", "before": "on_proceed", "conditions": "can_proceed"},
         ]
 
         self.machine = Machine(
@@ -29,13 +29,16 @@ class TrackedFSM:
 
     # Transition Actions
     def on_start(self):
-        logger.info("Processing started.")
+        logger.info("🎬 Processing started.")
 
     def on_fail(self):
-        logger.info("Error occurred.")
+        logger.info("🎬 Error occurred.")
 
     def on_reset(self):
-        logger.info("Resetting.")
+        logger.info("🎬 Resetting.")
+
+    def on_proceed(self):
+        logger.info("🎬 Processing...")
 
     def can_proceed(self):
         return True  # Change to False to test denied transitions.
@@ -63,7 +66,7 @@ class TrackedFSM:
     def safe_trigger(self, event):
         """Safe event trigger that logs warnings instead of crashing."""
         if event not in self.machine.get_triggers(self.state):
-            logger.warning(f"⚠️ Event '{event}' lost in state '{self.state}'")
+            logger.warning(f"⚠️  Event '{event}' lost in state '{self.state}'")
             return False  # Event not processed
         getattr(self, event)()  # Dynamically call the event method on self
         return True
