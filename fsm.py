@@ -26,17 +26,6 @@ class TrackedFSM:
             transitions=self.transitions,
             initial="idle"
         )
-        self.machine.on_transition = self.log_transition  # Hook for logging transitions
-
-    def log_transition(self, event_data):
-        """Logs each transition systematically."""
-        permitted = event_data.transition.conditions_met
-        logger.info(
-            f"✅ Event: {event_data.event.name}, "
-            f"Current State: {event_data.state}, "
-            f"New State: {event_data.transition.dest}, "
-            f"Permitted: {'Yes' if permitted else 'No'}"
-        )
 
     # Transition Actions
     def on_start(self):
